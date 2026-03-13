@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0"><i class="bi bi-shield-shaded text-primary me-2"></i>Admin Console</h2>
+        <div class="input-group w-25 shadow-sm">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="userSearch" class="form-control border-start-0 ps-0" placeholder="Search registry...">
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-3">
+            <div class="card border-0 shadow-sm bg-dark text-white p-4 mb-4" style="border-radius: 15px;">
+                <h6 class="text-uppercase small opacity-50 fw-bold mb-3">Quick Stats</h6>
+                <div class="mb-3">
+                    <span class="display-6 fw-bold text-primary">{{ users|length }}</span>
+                    <p class="small mb-0 opacity-75">Total Registered Users</p>
+                </div>
+                <div class="mb-0">
+                    <span class="display-6 fw-bold text-success">{{ resources|length }}</span>
+                    <p class="small mb-0 opacity-75">Global Resources</p>
+                </div>
+            </div>
+            
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 15px;">
+                <h6 class="text-uppercase small text-muted fw-bold mb-3">Admin Rules</h6>
+                <p class="x-small text-muted italic">Deletion is permanent. Promoting a user gives them full access to this panel.</p>
+            </div>
+        </div>
+
+        <div class="col-lg-9">
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="fw-bold mb-0">User Registry</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="adminTable">
+                        <thead class="bg-light">
+                            <tr class="small text-uppercase text-muted">
+                                <th class="ps-4">User</th>
+                                <th>Role</th>
+                                <th class="text-end pe-4">Permissions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                            <span class="fw-bold text-dark small">{{ user.username[0]|upper }}</span>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">@{{ user.username }}</div>
+                                            <div class="text-muted x-small">{{ user.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if user.role == 'admin' %}
+                                        <span class="badge bg-danger-subtle text-danger px-3 rounded-pill">Admin</span>
+                                    {% else %}
+                                        <span class="badge bg-info-subtle text-info px-3 rounded-pill">User</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    {% if user.role != 'admin' %}
+                                    <form action="{{ url_for('promote_user', user_id=user.id) }}" method="POST">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                            <i class="bi bi-arrow-up-circle me-1"></i>Promote
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                        <span class="text-muted small italic">System Admin</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm" style="border-radius: 15px; overflow: hidden;">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="fw-bold mb-0">Global Resources</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr class="small text-uppercase text-muted">
+                                <th class="ps-4">Resource Title</th>
+                                <th>Uploader</th>
+                                <th class="text-end pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for res in resources %}
+                            <tr>
+                                <td class="ps-4 fw-bold text-dark">{{ res.title }}</td>
+                                <td class="text-muted small">User #{{ res.user_id }}</td>
+                                <td class="text-end pe-4">
+                                    <form action="{{ url_for('admin_delete_resource', resource_id=res.id) }}" method="POST" onsubmit="return confirm('Confirm permanent deletion?');">
+                                        <button type="submit" class="btn btn-sm btn-danger rounded-circle p-2" title="Remove Resource">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div> </div>
+</div>
+
+<script>
+document.getElementById('userSearch').addEventListener('keyup', function() {
+    let value = this.value.toLowerCase();
+    let rows = document.querySelectorAll("tbody tr");
+    rows.forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+    });
+});
+</script>
+
+<style>
+    .x-small { font-size: 0.75rem; }
+    .bg-danger-subtle { background-color: #f8d7da; }
+    .bg-info-subtle { background-color: #cff4fc; }
+    .table-hover tbody tr:hover { background-color: #fbfbfb; transition: 0.2s; }
+</style>
+{% endblock %}
