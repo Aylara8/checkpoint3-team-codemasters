@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm p-3 mb-4 sticky-top" style="top: 20px;">
+            <h5 class="fw-bold mb-3"><i class="bi bi-graph-up-arrow me-2"></i>Dashboard</h5>
+            
+            <div class="d-flex justify-content-between mb-2">
+                <span>Total Items:</span>
+                <span class="badge bg-primary rounded-pill">{{ stats.total }}</span>
+            </div>
+            
+            <hr>
+            
+            <h6 class="small fw-bold text-uppercase text-muted">By Category</h6>
+            {% for cat, c_count in stats.categories %}
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>{{ cat if cat else 'General' }}</span>
+                    <span class="badge bg-light text-dark border">{{ c_count }}</span>
+                </div>
+            {% endfor %}
+
+            <a href="{{ url_for('export_csv') }}" class="btn btn-outline-dark btn-sm w-100 mt-3">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+            </a>
+        </div>
+
+        <div class="card border-0 shadow-sm p-3">
+            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-2"></i>Recent Additions</h6>
+            {% for item in stats.recent %}
+                <div class="mb-2 pb-2 border-bottom">
+                    <p class="mb-0 small fw-bold text-primary">{{ item.title }}</p>
+                    <span class="text-muted" style="font-size: 0.7rem;">in {{ item.category }}</span>
+                </div>
+            {% else %}
+                <p class="small text-muted">No recent items found.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="col-md-9">
+        <div class="card border-0 shadow-sm p-3 mb-4">
+            <form method="GET" action="{{ url_for('index') }}" class="row g-2">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                        <input type="text" name="q" value="{{ query }}" class="form-control border-start-0" placeholder="Search knowledge...">
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <select name="category" class="form-select">
+                        <option value="">All Categories</option>
+                        <option value="Books" {% if cat_filter == 'Books' %}selected{% endif %}>Books</option>
+                        <option value="Notes" {% if cat_filter == 'Notes' %}selected{% endif %}>Notes</option>
+                        <option value="Exam" {% if cat_filter == 'Exam' %}selected{% endif %}>Exams</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <select name="sort" class="form-select">
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
+                        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>A-Z</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Apply</button>
+                </div>
+            </form>
+            
+            {% if query or cat_filter %}
+                <p class="mt-2 mb-0 text-muted small">
+                    Showing results for {% if query %}"<strong>{{ query }}</strong>"{% endif %} 
+                    {% if cat_filter %} in <strong>{{ cat_filter }}</strong>{% endif %}
+                    <a href="{{ url_for('index') }}" class="text-danger ms-2 text-decoration-none"><i class="bi bi-x-circle"></i> Clear Filters</a>
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-2 g-4">
+            {% for res in results %}
+                <div class="col" id="resource-col-{{ res.id }}">
+                    <div class="card h-100 shadow-sm border-0 resource-card overflow-hidden">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h5 class="fw-bold text-primary mb-0">{{ res.title }}</h5>
+                                    <span class="badge bg-info text-white small">{{ res.category if res.category else 'General' }}</span>
+                                </div>
+                                <a href="{{ url_for('toggle_favorite', res_id=res.id) }}" class="text-decoration-none">
+                                    {% if current_user.is_authenticated and res in current_user.liked_resources %}
+                                        <i class="bi bi-heart-fill text-danger fs-5"></i>
+                                    {% else %}
+                                        <i class="bi bi-heart text-muted fs-5"></i>
+                                    {% endif %}
+                                </a>
+                            </div>
+                            
+                            <p class="text-muted small">
+    {% if res.description %}
+        {{ res.description[:120] }}{% if res.description|length > 120 %}...{% endif %}
+    {% else %}
+        No description provided.
+    {% endif %}
+</p>
+
+                            <div class="mt-3">
+                                <button class="btn btn-link btn-sm p-0 text-decoration-none small" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#comments-{{ res.id }}">
+                                    <i class="bi bi-chat-left-text me-1"></i> {{ res.comments|length }} Comments
+                                </button>
+                                
+                                <div class="collapse mt-2" id="comments-{{ res.id }}">
+                                    <div class="bg-light p-2 rounded mb-2" style="max-height: 120px; overflow-y: auto;">
+                                        {% for comment in res.comments %}
+                                            <div class="border-bottom mb-1 pb-1">
+                                                <strong class="small" style="font-size: 0.75rem;">@{{ comment.author.username }}</strong>
+                                                <p class="mb-0" style="font-size: 0.8rem;">{{ comment.text }}</p>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <form action="{{ url_for('add_comment', resource_id=res.id) }}" method="POST">
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="comment_text" class="form-control" placeholder="Add a comment..." required>
+                                            <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i></button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 d-flex align-items-center">
+                                <div class="bg-light rounded px-2 py-1 small">
+                                    <i class="bi bi-person me-1"></i>{{ res.uploader.username }}
+                                </div>
+                                <div class="ms-auto d-flex gap-2">
+                                    <a href="{{ url_for('download_file', filename=res.filename) }}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    {% if current_user.is_authenticated and res.user_id == current_user.id %}
+                                    <button class="btn btn-sm btn-outline-danger delete-res-btn" data-id="{{ res.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                    <h4 class="mt-3">No results found</h4>
+                    <p class="text-muted">Try using different keywords or clearing your filters.</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="d-flex gap-2 mb-2">
+    <span class="badge rounded-pill bg-light text-primary border border-primary-subtle">
+        <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+    </span>
+    <span class="badge rounded-pill bg-light text-muted border">
+        <i class="bi bi-clock me-1"></i> 5 min read
+    </span>
+</div>
+
+        {% if pagination and pagination.pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-5">
+            <ul class="pagination justify-content-center">
+                <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                    <a class="page-link" href="{{ url_for('index', page=pagination.prev_num, q=query, category=cat_filter, sort=sort_by) }}">Previous</a>
+                </li>
+
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == pagination.page }}">
+                            <a class="page-link" href="{{ url_for('index', page=page_num, q=query, category=cat_filter, sort=sort_by) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+
+                <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                    <a class="page-link" href="{{ url_for('index', page=pagination.next_num, q=query, category=cat_filter, sort=sort_by) }}">Next</a>
+                </li>
+            </ul>
+            <p class="text-center text-muted small mt-2">Page {{ pagination.page }} of {{ pagination.pages }}</p>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
