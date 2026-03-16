@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Community Chat</h5>
+                    <small>{{ messages|length }} recent messages</small>
+                </div>
+                
+                <div class="card-body" style="height: 500px; overflow-y: auto; background-color: #f8f9fa;">
+                    {% for msg in messages %}
+                        <div class="mb-3 d-flex flex-column {% if msg.sender == current_user %}align-items-end{% endif %}">
+                            <div class="p-3 rounded shadow-sm {% if msg.sender == current_user %}bg-primary text-white{% else %}bg-white text-dark{% endif %}" style="max-width: 80%;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="small">
+                                        {{ msg.sender.username }}
+                                        {% if msg.sender.role == 'admin' %}
+                                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">ADMIN</span>
+                                        {% endif %}
+                                    </strong>
+                                </div>
+                                <p class="mb-0">{{ msg.content }}</p>
+                                <div class="text-end" style="font-size: 0.65rem; opacity: 0.8;">
+                                    {{ msg.timestamp.strftime('%H:%M') }}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted mt-5">
+                            <p>No messages yet. Start the conversation!</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="card-footer bg-white border-top-0 p-3">
+                    <form action="{{ url_for('community') }}" method="POST">
+                        <div class="input-group">
+                            <input type="text" name="message" class="form-control" placeholder="Type your message..." required autocomplete="off">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-scroll to bottom of chat
+    const chatBody = document.querySelector('.card-body');
+    chatBody.scrollTop = chatBody.scrollHeight;
+</script>
+{% endblock %}

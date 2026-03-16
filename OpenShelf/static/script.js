@@ -68,3 +68,18 @@ function checkStrength(password) {
     else if (strength <= 75) bar.className = "progress-bar bg-warning";
     else bar.className = "progress-bar bg-success";
 }
+
+fetch('/get-quote')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('quote-text').innerText = `"${data.text}"`;
+        document.getElementById('quote-author').innerText = `- ${data.author}`;
+        
+        // Show the badge only if the source is not the API
+        const badge = document.getElementById('offline-badge');
+        if (data.source !== "API") {
+            badge.style.display = 'inline-block';
+        } else {
+            badge.style.display = 'none';
+        }
+    });
